@@ -63,4 +63,4 @@ python evaluate_MAD_AD.py \
 ```
 ## Sample Results
 
-![DeCo-Diff](./Samples.png)
+![DeCo-Diff](./qualitative-results.png)
