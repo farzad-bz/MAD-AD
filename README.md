@@ -30,13 +30,17 @@ Prepare your data by registering to MNI_152_1mm and preprocessing, normalization
 
 ```
 
+## train and fine-tune VAE
+
+Follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models) to fine-tune and adapt the RGB pre-trained models for medical images. Script "finetune_VAE.py" is prepared to adapt the 3-channel pre-trained model weights (KL-F8) for 1-channel medical images. The link to fintuned medical-VAE saved weight will be provided upon acceptance (due to the need for being anonymous). 
+
 ## Train
 
 Train our RLR with the following command:
 
 ```bash
 torchrun train_MAD_AD.py \
-            --dataset mvtec \
+            --dataset Bra \
             --model UNet_L \
             --mask-random-ratio True \
             --object-category all  \
