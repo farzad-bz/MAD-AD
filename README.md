@@ -32,38 +32,38 @@ Prepare your data by registering to MNI_152_1mm and preprocessing, normalization
 
 ## train and fine-tune VAE
 
-If you want to train your VAE from the beginning, follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models). Also, we have adapted and finetuned the RGB pre-trained models for 1-channel medical images, and you could directly use the saved VAE model in "checkpoints/klf8_medical.ckpt".
+If you want to train your own VAE from the beginning, follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models).  Also, we have adapted and finetuned the RGB pre-trained models for 1-channel medical brain images, and we provide access to trained VAE model upon acceptance of the paper. 
 
 ## Train
 
-Train our RLR with the following command:
+Train MAD-AD with the following command:
 
 ```bash
 torchrun train_MAD_AD.py \
-            --dataset Bra \
             --model UNet_L \
             --mask-random-ratio True \
-            --object-category all  \
-            --image-size 288 \
-            --center-size 256 \
-            --center-crop True \
+            --image-size 256 \
             --augmentation True \
+            --vae_path checkpoints/klf8_medcical.ckpt \
+            --train_data_root ./data/train/ \
+            --val_data_root ./data/val/ \
+            --modality T1 \
             --ckpt-every 20 
 ```
 
 ## Test
 
-Test the model with the following command:
+Test MAD-AD model with the following command:
 
 ```bash
 python evaluate_MAD_AD.py \
-            --dataset mvtec \
             --model UNet_L \
-            --object-category all  \
-            --image-size 288 \
-            --center-size 256 \
-            --center-crop True \
+            --mask-random-ratio True \
+            --image-size 256 \
             --augmentation True \
+            --vae_path checkpoints/klf8_medcical.ckpt \
+            --test_data_root ./data/test/ \
+            --modality T1 \
 ```
 ## Sample Results
 
