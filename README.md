@@ -51,20 +51,6 @@ torchrun train_MAD_AD.py \
             --ckpt-every 20 
 ```
 
-## Test
-
-Test MAD-AD model with the following command:
-
-```bash
-python evaluate_MAD_AD.py \
-            --model UNet_L \
-            --mask-random-ratio True \
-            --image-size 256 \
-            --augmentation True \
-            --vae_path checkpoints/klf8_medcical.ckpt \
-            --test_data_root ./data/test/ \
-            --modality T1 \
-```
 ## Sample Results
 
 ![DeCo-Diff](./qualitative-results.png)
