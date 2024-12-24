@@ -32,7 +32,7 @@ Prepare your data by registering to MNI_152_1mm and preprocessing, normalization
 
 ## train and fine-tune VAE
 
-Follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models) to fine-tune and adapt the RGB pre-trained models for medical images. Script "finetune_VAE.py" is prepared to adapt the 3-channel pre-trained model weights (KL-F8) for 1-channel medical images. The link to fintuned medical-VAE saved weight will be provided upon acceptance (due to the need for being anonymous). 
+If you want to train your VAE from the beginning, follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models). Also, we have adapted and finetuned the RGB pre-trained models for 1-channel medical images, and you could directly use the saved VAE model in "checkpoints/klf8_medical.ckpt".
 
 ## Train
 
