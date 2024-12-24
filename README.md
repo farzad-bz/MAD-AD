@@ -15,15 +15,15 @@ Prepare your data by registering to MNI_152_1mm and preprocessing, normalization
 ```
 ├── Data
     ├── train
-    │   ├── brain_scan_{train_image_id}_slice_{slice_idx}.png
+    │   ├── brain_scan_{train_image_id}_slice_{slice_idx}_{modality}.png
     │   ├── brain_scan_{train_image_id}_slice_{slice_idx}_brainmask.png
     │   └── ...
     ├── val
-    │   ├── brain_scan_{val_image_id}_slice_{slice_idx}.png
+    │   ├── brain_scan_{val_image_id}_slice_{slice_idx}_{modality}.png
     │   ├── brain_scan_{val_image_id}_slice_{slice_idx}_brainmask.png
     │   └── ...
     └── test
-    │   ├── brain_scan_{test_image_id}_slice_{slice_idx}.png
+    │   ├── brain_scan_{test_image_id}_slice_{slice_idx}_{modality}.png
     │   ├── brain_scan_{test_image_id}_slice_{slice_idx}_brainmask.png
     │   ├── brain_scan_{test_image_id}_slice_{slice_idx}_segmentation.png
         └── ...
