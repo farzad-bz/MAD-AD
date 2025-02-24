@@ -32,7 +32,7 @@ Prepare your data by registering to MNI_152_1mm and preprocessing, normalization
 
 ## train and fine-tune VAE
 
-If you want to train your own VAE from the beginning, follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models).  Also, we have adapted and finetuned the RGB pre-trained models for 1-channel medical brain images, and we provide access to trained VAE model upon acceptance of the paper. 
+If you want to train your own VAE from the beginning, follow [LDM-VAE](https://github.com/CompVis/latent-diffusion?tab=readme-ov-file#training-autoencoder-models).  Also, we have adapted and finetuned the RGB pre-trained models for 1-channel medical brain images, and we provide access to trained VAE model soon...
 
 ## Train
 
