@@ -31,7 +31,8 @@ from diffusion_x0 import create_diffusion
 from MedicalDataLoader import MedicalDataset
 from transformers import get_cosine_schedule_with_warmup
 
-from ldm.models.autoencoder import  AutoencoderKL
+# from ldm.models.autoencoder import  AutoencoderKL
+from huggingface_hub import hf_hub_download
 
 
 #################################################################################
@@ -209,21 +210,29 @@ def main(args):
     model = DDP(model.to(device), device_ids=[rank])
     diffusion = create_diffusion(timestep_respacing="ddim10", predict_xstart=True, sigma_small=False, learn_sigma = args.learn_sigma, diffusion_steps=10)  # default: 1000 steps, linear noise schedule
 
-    ddconfig = {
-    'double_z': True,
-    'z_channels': 4,
-    'resolution': 256,
-    'in_channels': 1,
-    'out_ch': 1,
-    'ch': 128,
-    'ch_mult': [1,2,4,4],
-    'num_res_blocks': 2,
-    'attn_resolutions': [],
-    'dropout': 0.0}
-    vae = AutoencoderKL(embed_dim=4, lossconfig={'target':'ldm.modules.losses.LPIPSWithDiscriminator', 'params':{'disc_start':50001, 'disc_in_channels':1, 'kl_weight': 0.000001, 'disc_weight': 0.5}}, ddconfig=ddconfig)
-    print(vae.load_state_dict(torch.load(args.vae_path)['state_dict'], strict=True))
+    # ddconfig = {
+    # 'double_z': True,
+    # 'z_channels': 4,
+    # 'resolution': 256,
+    # 'in_channels': 1,
+    # 'out_ch': 1,
+    # 'ch': 128,
+    # 'ch_mult': [1,2,4,4],
+    # 'num_res_blocks': 2,
+    # 'attn_resolutions': [],
+    # 'dropout': 0.0}
+    # vae = AutoencoderKL(embed_dim=4, lossconfig={'target':'ldm.modules.losses.LPIPSWithDiscriminator', 'params':{'disc_start':50001, 'disc_in_channels':1, 'kl_weight': 0.000001, 'disc_weight': 0.5}}, ddconfig=ddconfig)
+    # print(vae.load_state_dict(torch.load(args.vae_path)['state_dict'], strict=True))
     
+    # vae.eval()
+
+    vae_model_path = hf_hub_download(repo_id="farzadbz/Medical-VAE", filename="VAE-Medical-klf8.pt")
+    
+    # Load the model
+    vae = torch.load(vae_model_path)
     vae.eval()
+
+    
     vae.to(device)
     logger.info(f"DiT Parameters: {sum(p.numel() for p in model.parameters()):,}")
 
