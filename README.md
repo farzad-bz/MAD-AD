@@ -54,3 +54,17 @@ torchrun train_MAD_AD.py \
 ## Sample Results
 
 ![DeCo-Diff](./qualitative-results.png)
+
+
+## Citation & Reference
+
+If you use these models in your research, please cite the original latent diffusion work:
+
+```
+@article{beizaee2025mad,
+  title={MAD-AD: Masked Diffusion for Unsupervised Brain Anomaly Detection},
+  author={Beizaee, Farzad and Lodygensky, Gregory and Desrosiers, Christian and Dolz, Jose},
+  journal={arXiv preprint arXiv:2502.16943},
+  year={2025}
+}
+```
