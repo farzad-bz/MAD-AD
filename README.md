@@ -1,5 +1,18 @@
-# MAD-AD
-This Repository contains the PyTorch implementation of the paper titled: "MAD-AD: Masked Diffusion Autoencoder for Unsupervised Brain Anomaly Detection", Accepted in IPMI 2025. 
+
+# ✨ MAD-AD ✨
+**A PyTorch Implementation for Unsupervised Brain Anomaly Detection**
+
+This repository hosts the official PyTorch implementation for our IPMI 2025 paper:  
+**der for Unsupervised Brain Anomaly Detection**.
+
+---
+
+## 🎨 Approach
+
+
+![DeCo-Diff](./assets/method.png)
+
+---
 
 ## Setup
 
