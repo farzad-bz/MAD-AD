@@ -89,7 +89,7 @@ torchrun train_MAD_AD.py \
 ## 📸 Sample Results
 
 
-![Sample Results](./qualitative-results.png)
+![Sample Results](./assets/results.png)
 
 ---
 
