@@ -1,12 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
 
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
-"""
-A minimal training script for DiT using PyTorch DDP.
-"""
 import torch
 # the first flag below was False when we tested this script but True makes A100 training a lot faster:
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -31,7 +23,6 @@ from diffusion_x0 import create_diffusion
 from MedicalDataLoader import MedicalDataset
 from transformers import get_cosine_schedule_with_warmup
 
-# from ldm.models.autoencoder import  AutoencoderKL
 from huggingface_hub import hf_hub_download
 
 
@@ -39,25 +30,6 @@ from huggingface_hub import hf_hub_download
 #                             Training Helper Functions                         #
 #################################################################################
 
-@torch.no_grad()
-def update_ema(ema_model, model, decay=0.9999):
-    """
-    Step the EMA model towards the current model.
-    """
-    ema_params = OrderedDict(ema_model.named_parameters())
-    model_params = OrderedDict(model.named_parameters())
-
-    for name, param in model_params.items():
-        # TODO: Consider applying only to params that require_grad to avoid small numerical changes of pos_embed
-        ema_params[name].mul_(decay).add_(param.data, alpha=1 - decay)
-
-
-def requires_grad(model, flag=True):
-    """
-    Set requires_grad flag for all parameters in a model.
-    """
-    for p in model.parameters():
-        p.requires_grad = flag
 
 
 def cleanup():
@@ -171,7 +143,7 @@ def shuffle_patches(image, patch_size_x, patch_size_y):
 
 def main(args):
     """
-    Trains a new DiT model.
+    Trains a new model.
     """
     assert torch.cuda.is_available(), "Training currently requires at least one GPU."
 
@@ -204,27 +176,8 @@ def main(args):
     latent_size = args.image_size // 8
     dictss = {}
     model = UNET_models[f'UNet_{args.model_size}'](latent_size=latent_size)
-    # Note that parameter initialization is done within the DiT constructor
-    ema = deepcopy(model).to(device)  # Create an EMA of the model for use after training
-    requires_grad(ema, False)
     model = DDP(model.to(device), device_ids=[rank])
     diffusion = create_diffusion(timestep_respacing="ddim10", predict_xstart=True, sigma_small=False, learn_sigma = args.learn_sigma, diffusion_steps=10)  # default: 1000 steps, linear noise schedule
-
-    # ddconfig = {
-    # 'double_z': True,
-    # 'z_channels': 4,
-    # 'resolution': 256,
-    # 'in_channels': 1,
-    # 'out_ch': 1,
-    # 'ch': 128,
-    # 'ch_mult': [1,2,4,4],
-    # 'num_res_blocks': 2,
-    # 'attn_resolutions': [],
-    # 'dropout': 0.0}
-    # vae = AutoencoderKL(embed_dim=4, lossconfig={'target':'ldm.modules.losses.LPIPSWithDiscriminator', 'params':{'disc_start':50001, 'disc_in_channels':1, 'kl_weight': 0.000001, 'disc_weight': 0.5}}, ddconfig=ddconfig)
-    # print(vae.load_state_dict(torch.load(args.vae_path)['state_dict'], strict=True))
-    
-    # vae.eval()
 
     vae_model_path = hf_hub_download(repo_id="farzadbz/Medical-VAE", filename="VAE-Medical-klf8.pt")
     
@@ -234,7 +187,7 @@ def main(args):
 
     
     vae.to(device)
-    logger.info(f"DiT Parameters: {sum(p.numel() for p in model.parameters()):,}")
+    logger.info(f"Number of Parameters: {sum(p.numel() for p in model.parameters()):,}")
 
     # Setup data:
     transform = transforms.Compose([
@@ -270,11 +223,8 @@ def main(args):
     ])
         
 
-    # Prepare models for training:
-    update_ema(ema, model.module, decay=0)  # Ensure EMA is initialized with synced weights
-
+    # Prepare models for training
     model.train()  # important! This enables embedding dropout for classifier-free guidance
-    ema.eval()  # EMA model should always be in eval mode
 
     # Variables for monitoring/logging purposes:
     train_steps = 0
@@ -320,8 +270,6 @@ def main(args):
             if (ii + 1) % accumulation_steps == 0:
                 opt.step()
                 opt.zero_grad() 
-                
-            update_ema(ema, model.module)
 
             # Log loss values:
             running_loss += loss.item()
@@ -353,7 +301,6 @@ def main(args):
                 log_steps = 0
                 start_time = time()
 
-            # Save DiT checkpoint:
         scheduler.step()
         
         
@@ -427,7 +374,6 @@ def main(args):
                     # Save checkpoint:
                     checkpoint = {
                         "model": model.module.state_dict(),
-                        "ema": ema.state_dict(),
                         # "opt": opt.state_dict(),
                         "args": args
                     }
@@ -441,7 +387,6 @@ def main(args):
                     # Save checkpoint:
                     checkpoint = {
                         "model": model.module.state_dict(),
-                        "ema": ema.state_dict(),
                         # "opt": opt.state_dict(),
                         "args": args
                     }
@@ -455,7 +400,6 @@ def main(args):
                 # Save checkpoint:
                 checkpoint = {
                     "model": model.module.state_dict(),
-                    "ema": ema.state_dict(),
                     # "opt": opt.state_dict(),
                     "args": args
                 }
@@ -475,7 +419,6 @@ def main(args):
     
 
 if __name__ == "__main__":
-    # Default args here will train DiT-XL/2 with the hyperparameters we used in our paper (except training iters).
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="UNET")
     parser.add_argument("--model-size", type=str, default="L")
