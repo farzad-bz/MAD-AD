@@ -163,7 +163,7 @@ def main(args):
         with open(f'{args.results_dir}/args.txt', 'w') as f:
             json.dump(args.__dict__, f, indent=2)
         experiment_index = len(glob(f"{args.results_dir}/*"))
-        experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{args.model.replace('/', '-')}"  # Create an experiment folder
+        experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{args.model_size}"  # Create an experiment folder
         checkpoint_dir = f"{experiment_dir}/checkpoints"  # Stores saved model checkpoints
         os.makedirs(checkpoint_dir, exist_ok=True)
         logger = create_logger(experiment_dir)
@@ -174,8 +174,7 @@ def main(args):
     # Create model:
     assert args.image_size % 8 == 0, "Image size must be divisible by 8 (for the VAE encoder)."
     latent_size = args.image_size // 8
-    dictss = {}
-    model = UNET_models[f'UNet_{args.model_size}'](latent_size=latent_size)
+    model = UNET_models[args.model_size](latent_size=latent_size)
     model = DDP(model.to(device), device_ids=[rank])
     diffusion = create_diffusion(timestep_respacing="ddim10", predict_xstart=True, sigma_small=False, learn_sigma = args.learn_sigma, diffusion_steps=10)  # default: 1000 steps, linear noise schedule
 
@@ -420,15 +419,13 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="UNET")
-    parser.add_argument("--model-size", type=str, default="L")
+    parser.add_argument("--model_size", type=str, choices=['UNet_XS', 'UNet_S', 'UNet_M', 'UNet_L', 'UNet_XL'], default="UNet_L")
     parser.add_argument("--image-size", type=int, default=256)
     parser.add_argument("--modality", type=str, choices=['T1', 'T2', 'FLAIR', 'T1CE'], default="T1")
     parser.add_argument("--epochs", type=int, default=1000)
     parser.add_argument("--warmup-epochs", type=int, default=10)
     parser.add_argument("--global-batch-size", type=int, default=96)
     parser.add_argument("--global-seed", type=int, default=10)
-    parser.add_argument("--vae-path", type=str, default="./checkpoints/klf8_medcical.ckpt")  
     parser.add_argument("--train-data-root", type=str, default="./data/train/")  
     parser.add_argument("--val-data-root", type=str, default="./data/val/")  
     parser.add_argument("--num-workers", type=int, default=4)
@@ -440,6 +437,6 @@ if __name__ == "__main__":
     parser.add_argument("--augmentation", type=bool, default=False)
     
     args = parser.parse_args()
-    args.results_dir = f"results_MAD-AD_{args.modality}_{args.model}_{args.model_size}"
+    args.results_dir = f"results_MAD-AD_{args.modality}_{args.model_size}"
     main(args)
 
