@@ -39,17 +39,17 @@ Prepare your data as follows:
    ```
    ├── Data
        ├── train
-       │   ├── brain_scan_{train_image_id}_slice_{slice_idx}_{modality}.png
-       │   ├── brain_scan_{train_image_id}_slice_{slice_idx}_brainmask.png
+       │   ├── {train_image_id}-slice_{slice_idx}-{modality}.png
+       │   ├── {train_image_id}-slice_{slice_idx}-brainmask.png
        │   └── ...
        ├── val
-       │   ├── brain_scan_{val_image_id}_slice_{slice_idx}_{modality}.png
-       │   ├── brain_scan_{val_image_id}_slice_{slice_idx}_brainmask.png
+       │   ├── {val_image_id}-slice_{slice_idx}-{modality}.png
+       │   ├── {val_image_id}-slice_{slice_idx}-brainmask.png
        │   └── ...
        └── test
-           ├── brain_scan_{test_image_id}_slice_{slice_idx}_{modality}.png
-           ├── brain_scan_{test_image_id}_slice_{slice_idx}_brainmask.png
-           ├── brain_scan_{test_image_id}_slice_{slice_idx}_segmentation.png
+           ├── {test_image_id}-slice_{slice_idx}-{modality}.png
+           ├── {test_image_id}-slice_{slice_idx}-brainmask.png
+           ├── {test_image_id}-slice_{slice_idx}-segmentation.png
            └── ...
    ```
 
@@ -73,19 +73,27 @@ To train MAD-AD, run the following command. This configuration leverages a UNet_
 
 ```bash
 torchrun train_MAD_AD.py \
+            --modality T1 \
             --model UNet_L \
-            --mask-random-ratio True \
+            --mask-ratio 0.75 \
             --image-size 256 \
             --augmentation True \
-            --vae_path checkpoints/klf8_medical.ckpt \
-            --train_data_root ./data/train/ \
-            --val_data_root ./data/val/ \
-            --modality T1 \
+            --data_root ./data/ \
             --ckpt-every 20 
 ```
 
----
 
+## 🚦 Evaluating MAD-AD
+To evaluate MAD-AD model, use the following command.
+Note: evaluate-MAD-AD.py loads its configuration and arguments from the YAML file located in the parent directory of the given model checkpoint path. The script computes four evaluation metrics and saves per-image visualizations in the parent folder of the model path:
+
+```bash
+torchrun evaluate-MAD-AD.py \
+            --data-root ./data/ \
+            --model-path ./MAD-AD_T2_UNet_L/001-UNet_L/checkpoints/last.pt
+```
+
+---
 ## 📸 Sample Results
 
 

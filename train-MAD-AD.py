@@ -18,6 +18,7 @@ import logging
 import os
 import random
 from models import UNET_models
+import yaml
 
 from diffusion_x0 import create_diffusion
 from MedicalDataLoader import MedicalDataset
@@ -160,10 +161,11 @@ def main(args):
     # Setup an experiment folder:
     if rank == 0:
         os.makedirs(args.results_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
-        with open(f'{args.results_dir}/args.txt', 'w') as f:
-            json.dump(args.__dict__, f, indent=2)
+        with open(f'{args.results_dir}/args.yml', 'w') as f:
+            yaml.dump(vars(args), f, default_flow_style=False)   
+            
         experiment_index = len(glob(f"{args.results_dir}/*"))
-        experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{args.model_size}"  # Create an experiment folder
+        experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{args.model}"  # Create an experiment folder
         checkpoint_dir = f"{experiment_dir}/checkpoints"  # Stores saved model checkpoints
         os.makedirs(checkpoint_dir, exist_ok=True)
         logger = create_logger(experiment_dir)
@@ -174,9 +176,9 @@ def main(args):
     # Create model:
     assert args.image_size % 8 == 0, "Image size must be divisible by 8 (for the VAE encoder)."
     latent_size = args.image_size // 8
-    model = UNET_models[args.model_size](latent_size=latent_size)
+    model = UNET_models[args.model](latent_size=latent_size)
     model = DDP(model.to(device), device_ids=[rank])
-    diffusion = create_diffusion(timestep_respacing="ddim10", predict_xstart=True, sigma_small=False, learn_sigma = args.learn_sigma, diffusion_steps=10)  # default: 1000 steps, linear noise schedule
+    diffusion = create_diffusion(timestep_respacing="ddim10", predict_xstart=True, sigma_small=False, learn_sigma = False, diffusion_steps=10)  # default: 10 steps, linear noise schedule
 
     vae_model_path = hf_hub_download(repo_id="farzadbz/Medical-VAE", filename="VAE-Medical-klf8.pt")
     
@@ -194,11 +196,11 @@ def main(args):
         transforms.Normalize(mean=[0.5], std=[0.5], inplace=True)
     ])
     
-    dataset = MedicalDataset('train', rootdir=args.train_data_root, modality=args.modaity, transform=transform, image_size=args.image_size, augment=args.augmentation, modality=args.modality)
+    dataset = MedicalDataset('train', rootdir=args.data_root, modality=args.modality, transform=transform, image_size=args.image_size, augment=args.augmentation)
     loader = DataLoader(dataset, batch_size=args.global_batch_size, shuffle=True, num_workers=4, drop_last=False)
     
     
-    val_dataset = MedicalDataset('val', rootdir=args.val_data_root, modality=args.modaity, transform=transform, image_size=args.image_size, augment=False, modality=args.modality)
+    val_dataset = MedicalDataset('val', rootdir=args.data_root, modality=args.modality, transform=transform, image_size=args.image_size, augment=False)
     val_loader = DataLoader(val_dataset, batch_size=args.global_batch_size, shuffle=False, num_workers=4, drop_last=False)
     
     accumulation_steps = 1
@@ -319,8 +321,8 @@ def main(args):
                     x = vae.encode(x).sample().mul_(0.18215)
                     t = torch.randint(0, diffusion.num_timesteps, (x.shape[0],), device=device)
         
-                    mask_patch_size_x = np.random.choice([1,2,4,8], 1, p=[0.2, 0.3, 0.3, 0.2]).item()
-                    mask_patch_size_y = np.random.choice([1,2,4,8], 1, p=[0.2, 0.3, 0.3, 0.2]).item()
+                    mask_patch_size_x = np.random.choice([1,2,4,8], 1, p=[0.3, 0.3, 0.2, 0.2]).item()
+                    mask_patch_size_y = np.random.choice([1,2,4,8], 1, p=[0.3, 0.3, 0.2, 0.2]).item()
                     mask_ratios = np.random.uniform(low=0.0, high=0.3, size = x.shape[0])
 
                     mask = random_mask(x, mask_ratios=mask_ratios, mask_patch_size_x=mask_patch_size_x, mask_patch_size_y=mask_patch_size_y)
@@ -365,7 +367,6 @@ def main(args):
             log_steps_val = 0
             start_time = time()    
             
-            model.train()
             
             if running_mse_val < best_running_mse:
                 best_running_mse = running_mse_val
@@ -380,7 +381,7 @@ def main(args):
                     torch.save(checkpoint, checkpoint_path)
                     logger.info(f"Saved checkpoint to {checkpoint_path}")
                     
-            if running_mp_val > best_running_mp:
+            if running_mp_val < best_running_mp:
                 best_running_mp = running_mp_val
                 if rank == 0: 
                     # Save checkpoint:
@@ -406,8 +407,9 @@ def main(args):
                 torch.save(checkpoint, checkpoint_path)
                 logger.info(f"Saved checkpoint to {checkpoint_path}")
 
-                  
+            model.train()      
             dist.barrier()
+            
 
 
 
@@ -419,24 +421,23 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_size", type=str, choices=['UNet_XS', 'UNet_S', 'UNet_M', 'UNet_L', 'UNet_XL'], default="UNet_L")
+    parser.add_argument("--model", type=str, choices=['UNet_XS', 'UNet_S', 'UNet_M', 'UNet_L', 'UNet_XL'], default="UNet_L")
     parser.add_argument("--image-size", type=int, default=256)
     parser.add_argument("--modality", type=str, choices=['T1', 'T2', 'FLAIR', 'T1CE'], default="T1")
-    parser.add_argument("--epochs", type=int, default=1000)
+    parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--warmup-epochs", type=int, default=10)
     parser.add_argument("--global-batch-size", type=int, default=96)
-    parser.add_argument("--global-seed", type=int, default=10)
-    parser.add_argument("--train-data-root", type=str, default="./data/train/")  
-    parser.add_argument("--val-data-root", type=str, default="./data/val/")  
+    parser.add_argument("--global-seed", type=int, default=10)  
+    parser.add_argument("--data-root", type=str, default="./data/")  
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--log-every", type=int, default=50)
     parser.add_argument("--ckpt-every", type=int, default=10)
     parser.add_argument("--lr", type=float, default=4e-5)
     parser.add_argument("--local-rank", type=int, default=0)
     parser.add_argument("--mask-ratio", type=float, default=0.75)
-    parser.add_argument("--augmentation", type=bool, default=False)
+    parser.add_argument("--augmentation", type=lambda v: True if v.lower() in ('yes','true','t','y','1') else False, default=False)
     
     args = parser.parse_args()
-    args.results_dir = f"results_MAD-AD_{args.modality}_{args.model_size}"
+    args.results_dir = f"MAD-AD_{args.modality}_{args.model}"
     main(args)
 

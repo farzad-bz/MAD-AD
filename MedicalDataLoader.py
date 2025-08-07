@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 class MedicalDataset(Dataset):
     """ABIDE dataset."""
 
-    def __init__(self, mode, rootdir= './data/train/', modality="T1", transform=None, image_size=256, augment=True):
+    def __init__(self, mode, rootdir='./data/', modality="T1", transform=None, image_size=256, augment=True):
         """
         Args:
             mode: 'train','val','test'
@@ -30,7 +30,7 @@ class MedicalDataset(Dataset):
         self.image_size = image_size
         
         ##This might be modified according to your data
-        self.image_paths = glob(f'{rootdir}/brain_scan_*{modality}.png')
+        self.image_paths = glob(os.path.join(rootdir, mode, f'*{modality}.png'))
         self.branmask_paths = [path.replace(modality, 'brainmask') for path in self.image_paths]
         if mode == 'test':
             self.segmentation_paths = [path.replace(modality, 'segmentation') for path in self.image_paths]
@@ -67,7 +67,7 @@ class MedicalDataset(Dataset):
             segmentation = np.array(Image.open(self.segmentation_paths[index]).convert('L').resize((self.image_size, self.image_size))).astype(np.uint8)
             segmentation = (segmentation>0.0).astype(np.int32)
         else:
-            segmentation = None
+            segmentation = np.zeros_like(img)
             
         if self.augment and self.mode == 'train':
             augmented = self.aug(image=img, mask=brain_mask)

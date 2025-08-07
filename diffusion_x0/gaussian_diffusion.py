@@ -281,11 +281,7 @@ class GaussianDiffusion:
 
         B, C = x.shape[:2]
         assert t.shape == (B,)
-        model_output = model(x, t, **model_kwargs)
-        if isinstance(model_output, tuple):
-            model_output, extra = model_output
-        else:
-            extra = None
+        model_output, predicted_mask = model(x, t, **model_kwargs)
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
@@ -333,7 +329,7 @@ class GaussianDiffusion:
             "variance": model_variance,
             "log_variance": model_log_variance,
             "pred_xstart": pred_xstart,
-            "extra": extra,
+            "predicted_mask": predicted_mask,
         }
 
     def _predict_xstart_from_eps(self, x_t, t, eps, mask):
@@ -709,6 +705,7 @@ class GaussianDiffusion:
         )
         # Equation 12.
         noise = th.randn_like(x)
+        predicted_mask = out["predicted_mask"]
         mean_pred = (
             out["pred_xstart"] * th.sqrt(alpha_bar_prev)
             + th.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
@@ -717,7 +714,10 @@ class GaussianDiffusion:
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
         sample = mean_pred + nonzero_mask * sigma * noise
-        return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+        predicted_mask = (predicted_mask < 0.5).to(th.float32)
+        predicted_mask = th.repeat_interleave(predicted_mask, 4, dim=1)
+        sample = predicted_mask * sample + (1-predicted_mask)*x
+        return {"sample": sample, "pred_xstart": out["pred_xstart"], "predicted_mask":predicted_mask}
 
     def ddim_reverse_sample(
         self,
@@ -830,7 +830,9 @@ class GaussianDiffusion:
 
             indices = tqdm(indices)
 
+        image_name=np.random.randint(10000)
         for i in indices:
+            
             t = th.tensor([i] * shape[0], device=device)
             with th.no_grad():
                 out = self.ddim_sample(
@@ -953,9 +955,9 @@ class GaussianDiffusion:
             terms["mask_prediction"] = mean_flat(((mask - mt_output)) ** 2)
                 
             if "vb" in terms:
-                terms["loss"] = terms["mse"] + terms["vb"] + 0.01 * terms["mask_prediction"]
+                terms["loss"] = terms["mse"] + terms["vb"] + 0.001 * terms["mask_prediction"]
             else:
-                terms["loss"] = terms["mse"] + 0.01 * terms["mask_prediction"]
+                terms["loss"] = terms["mse"] + 0.001 * terms["mask_prediction"]
         else:
             raise NotImplementedError(self.loss_type)
 
